@@ -5,6 +5,7 @@ import os
 import uuid
 from pathlib import Path
 import asyncio
+from datetime import datetime
 
 from ...database.session import get_db
 from ...database.models import (
@@ -73,7 +74,7 @@ def create_recording_settings(
         )
     
     # 创建录制设置
-    db_settings = RecordingSettingsModel(**settings_in.dict())
+    db_settings = RecordingSettingsModel(**settings_in.model_dump())
     db.add(db_settings)
     db.commit()
     db.refresh(db_settings)
@@ -184,13 +185,14 @@ def stop_recording(
         # 创建视频记录
         video = Video(
             project_id=last_settings.project_id,
-            file_path=info["output_path"],
-            file_name=os.path.basename(info["output_path"]),
-            duration=info["duration"],
-            frame_count=info["frame_count"],
-            file_size=info["file_size"],
-            resolution=f"{recorder.frame_size[0]}x{recorder.frame_size[1]}",
+            name=os.path.basename(info["output_path"]),
+            path=info["output_path"],
+            duration=info.get("duration"),
+            camera_index=camera_index,
+            width=recorder.frame_size[0] if recorder.frame_size else None,
+            height=recorder.frame_size[1] if recorder.frame_size else None,
             fps=recorder.fps,
+            format=os.path.splitext(info["output_path"])[1][1:],
             recorded_at=datetime.fromtimestamp(recorder.start_time) if recorder.start_time else datetime.now(),
             created_by=current_user.id
         )
@@ -321,8 +323,8 @@ def delete_video(
     
     # 删除文件
     try:
-        if os.path.exists(video.file_path):
-            os.remove(video.file_path)
+        if video.path and os.path.exists(video.path):
+            os.remove(video.path)
     except Exception as e:
         # 即使文件删除失败，也继续删除数据库记录
         print(f"删除视频文件失败: {str(e)}")

@@ -375,3 +375,14 @@ class Localizer3D:
             results.append(result)
         
         return results
+
+    def localize_3d(
+        self, 
+        detections1: List[Dict[str, Any]],
+        detections2: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """
+        对两个相机中匹配的检测结果进行3D定位。
+        这是一个兼容旧测试的别名，实际调用 localize_detections。
+        """
+        return self.localize_detections(detections1, detections2)

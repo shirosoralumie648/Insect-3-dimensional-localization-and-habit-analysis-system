@@ -106,3 +106,20 @@ class EvaluationMetrics(BaseModel):
     mAP50_95: float
     f1_score: float
     class_metrics: Dict[str, Dict[str, float]]  # 每类指标
+
+
+class TrainingJobCreate(BaseModel):
+    """训练任务创建模型"""
+    dataset_id: int
+    base_model: str = Field("yolov8n.pt", description="基础模型名称，例如 yolov8n.pt")
+    epochs: int = 100
+    batch_size: int = 16
+    img_size: int = 640
+    device: str = Field("", description="训练设备，例如 'cpu', '0', '0,1,2,3'")
+
+
+class TrainingJobResponse(BaseModel):
+    """训练任务响应模型"""
+    job_id: str
+    model_id: int
+    status: str

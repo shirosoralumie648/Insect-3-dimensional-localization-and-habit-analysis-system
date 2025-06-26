@@ -64,9 +64,10 @@ class AnnotationBase(BaseModel):
     class_name: str
 
 
-class AnnotationCreate(AnnotationBase):
+class AnnotationCreate(BaseModel):
     """标注创建模型"""
-    dataset_id: int
+    image_name: str
+    coco_annotation: Dict[str, Any]
 
 
 class AnnotationUpdate(BaseModel):

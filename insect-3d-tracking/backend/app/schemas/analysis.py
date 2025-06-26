@@ -17,7 +17,7 @@ class BehaviorTypeList(BaseModel):
     items: List[BehaviorType]
 
 
-class BehaviorAnalysisSettings(BaseModel):
+class AnalysisSettings(BaseModel):
     """行为分析设置"""
     window_size: int = 30  # 行为分析窗口大小(帧)
     min_trajectory_length: int = 10  # 最小有效轨迹长度
@@ -73,3 +73,9 @@ class TrajectoryStatistics(BaseModel):
     idle_time: float  # 静止时间(秒)
     bounding_box: Dict[str, Any]  # 活动边界框
     ground_contacts: int  # 与地面接触次数(如果适用)
+
+
+class AnalysisRequest(BaseModel):
+    """分析请求体"""
+    session_id: int
+    settings: AnalysisSettings

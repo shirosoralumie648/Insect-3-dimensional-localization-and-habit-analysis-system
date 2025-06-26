@@ -15,7 +15,7 @@ import asyncio
 
 from ...database.session import get_db
 from ...database.models import (
-    ApriltageConfig,
+    ApriltagConfig,
     CameraConfig,
     User,
     Project,

@@ -14,7 +14,7 @@ from pathlib import Path
 import asyncio
 
 from ...database.session import get_db
-from ...database.models import ApriltageConfig, CameraConfig, User, Project
+from ...database.models import ApriltagConfig, CameraConfig, User, Project
 from ...schemas.apriltag import (
     ApriltagConfig as ApriltagConfigSchema,
     ApriltagConfigCreate,
@@ -44,7 +44,7 @@ def read_apriltag_configs(
     """
     获取Apriltag配置列表
     """
-    query = db.query(ApriltageConfig)
+    query = db.query(ApriltagConfig)
     
     if project_id:
         # 确认项目存在且用户有访问权限
@@ -61,7 +61,7 @@ def read_apriltag_configs(
                 detail="没有权限访问此项目"
             )
         
-        query = query.filter(ApriltageConfig.project_id == project_id)
+        query = query.filter(ApriltagConfig.project_id == project_id)
     else:
         # 如果没有指定项目，只返回用户有权限访问的项目的配置
         project_ids = [
@@ -69,7 +69,7 @@ def read_apriltag_configs(
                 Project.user_id == current_user.id
             ).all()
         ]
-        query = query.filter(ApriltageConfig.project_id.in_(project_ids))
+        query = query.filter(ApriltagConfig.project_id.in_(project_ids))
     
     total = query.count()
     configs = query.offset(skip).limit(limit).all()
@@ -102,7 +102,7 @@ def create_apriltag_config(
         )
     
     # 创建配置
-    config = ApriltageConfig(
+    config = ApriltagConfig(
         project_id=config_in.project_id,
         name=config_in.name,
         family=config_in.family,
@@ -125,7 +125,7 @@ def read_apriltag_config(
     """
     获取Apriltag配置详情
     """
-    config = db.query(ApriltageConfig).filter(ApriltageConfig.id == config_id).first()
+    config = db.query(ApriltagConfig).filter(ApriltagConfig.id == config_id).first()
     if not config:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -160,7 +160,7 @@ def update_apriltag_config(
     """
     更新Apriltag配置
     """
-    config = db.query(ApriltageConfig).filter(ApriltageConfig.id == config_id).first()
+    config = db.query(ApriltagConfig).filter(ApriltagConfig.id == config_id).first()
     if not config:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -201,7 +201,7 @@ def delete_apriltag_config(
     """
     删除Apriltag配置
     """
-    config = db.query(ApriltageConfig).filter(ApriltageConfig.id == config_id).first()
+    config = db.query(ApriltagConfig).filter(ApriltagConfig.id == config_id).first()
     if not config:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -375,7 +375,7 @@ async def calibrate_camera_endpoint(
         )
     
     # 获取Apriltag配置
-    apriltag_config = db.query(ApriltageConfig).filter(ApriltageConfig.id == settings.apriltag_config_id).first()
+    apriltag_config = db.query(ApriltagConfig).filter(ApriltagConfig.id == settings.apriltag_config_id).first()
     if not apriltag_config:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

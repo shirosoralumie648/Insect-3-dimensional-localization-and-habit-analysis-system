@@ -104,7 +104,9 @@ class DetectionSession(Base):
     # 关系
     project = relationship("Project", back_populates="detection_sessions")
     detection_results = relationship("DetectionResult", back_populates="session", cascade="all, delete-orphan")
+    tracking_results = relationship("TrackingResult", back_populates="session", cascade="all, delete-orphan")
     trajectories = relationship("Trajectory", back_populates="session", cascade="all, delete-orphan")
+    analysis_results = relationship("AnalysisResult", back_populates="session", cascade="all, delete-orphan")
 
     def __init__(self, project_id, name=None, config=None):
         self.project_id = project_id
@@ -146,6 +148,30 @@ class DetectionResult(Base):
             setattr(self, key, value)
 
 
+class TrackingResult(Base):
+    """3D跟踪结果表"""
+    __tablename__ = "tracking_results"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("detection_sessions.id", ondelete="CASCADE"))
+    timestamp = Column(DateTime, default=func.now())
+    
+    position_3d = Column(JSON)
+    confidence = Column(Float)
+    class_id = Column(Integer)
+    class_name = Column(String)
+    
+    detection_id1 = Column(Integer, ForeignKey("detection_results.id"), nullable=True)
+    detection_id2 = Column(Integer, ForeignKey("detection_results.id"), nullable=True)
+    
+    tracking_data = Column(JSON)
+
+    # 关系
+    session = relationship("DetectionSession", back_populates="tracking_results")
+    detection1 = relationship("DetectionResult", foreign_keys=[detection_id1])
+    detection2 = relationship("DetectionResult", foreign_keys=[detection_id2])
+
+
 class Trajectory(Base):
     """轨迹表"""
     __tablename__ = "trajectories"
@@ -155,9 +181,9 @@ class Trajectory(Base):
     object_id = Column(Integer, nullable=False)  # 物体ID
     frame_number = Column(Integer, nullable=False)
     timestamp = Column(Float, nullable=False)  # 时间戳
-    x = Column(Float)  # 3D空间中的x坐标(米)
-    y = Column(Float)  # 3D空间中的y坐标(米)
-    z = Column(Float)  # 3D空间中的z坐标(米)
+    x = Column(Float, nullable=False)  # 3D空间中的x坐标(米)
+    y = Column(Float, nullable=False)  # 3D空间中的y坐标(米)
+    z = Column(Float, nullable=False)  # 3D空间中的z坐标(米)
     vx = Column(Float)  # x方向速度(米/秒)
     vy = Column(Float)  # y方向速度(米/秒)
     vz = Column(Float)  # z方向速度(米/秒)
@@ -176,6 +202,26 @@ class Trajectory(Base):
         self.z = z
         for key, value in kwargs.items():
             setattr(self, key, value)
+
+
+class AnalysisResult(Base):
+    """行为分析结果表"""
+    __tablename__ = "analysis_results"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("detection_sessions.id", ondelete="CASCADE"))
+    analysis_type = Column(String, nullable=False)  # 分析类型，如 'speed_distribution', 'turning_angle'
+    result_data = Column(Text)  # 存储JSON格式的分析结果
+    created_at = Column(DateTime, default=func.now())
+
+    # 关系
+    session = relationship("DetectionSession", back_populates="analysis_results")
+
+    def __init__(self, session_id, analysis_type, result_data=None):
+        self.session_id = session_id
+        self.analysis_type = analysis_type
+        if result_data:
+            self.result_data = json.dumps(result_data)
 
 
 class Video(Base):

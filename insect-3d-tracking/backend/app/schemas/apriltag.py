@@ -77,3 +77,33 @@ class StereoCalibrationResult(BaseModel):
     essential_matrix: Optional[Dict[str, Any]] = None  # 本质矩阵
     fundamental_matrix: Optional[Dict[str, Any]] = None  # 基础矩阵
     success: bool
+
+
+class ApriltagDetectionSettings(BaseModel):
+    """Apriltag检测设置"""
+    apriltag_config_id: int
+    estimate_pose: bool = False
+    camera_config_id: Optional[int] = None
+
+
+class ApriltagDetectionResult(BaseModel):
+    """Apriltag检测的完整结果"""
+    detections: List[ApriltagDetection]
+    timestamp: datetime
+
+
+class CalibrationData(BaseModel):
+    """用于标定的数据点"""
+    image_points: List[List[List[float]]]
+    object_points: List[List[List[float]]]
+    image_size: tuple[int, int]
+
+
+class CalibrationSettings(BaseModel):
+    """相机标定设置"""
+    camera_config_id: int
+    apriltag_config_id: int
+    num_images: int = Field(20, gt=0, description="用于标定的图像数量")
+    min_images: int = Field(10, gt=0, description="成功标定所需的最少图像数量")
+    capture_delay: float = Field(0.5, gt=0, description="图像采集间隔(秒)")
+

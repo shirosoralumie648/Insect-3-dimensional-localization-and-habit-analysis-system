@@ -7,6 +7,24 @@ import json
 from .session import Base
 
 
+class User(Base):
+    """用户表"""
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    is_active = Column(Boolean, default=True)
+    is_admin = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=func.now())
+
+    projects = relationship("Project", back_populates="user")
+
+
+
+
+
 class Project(Base):
     """项目表"""
     __tablename__ = "projects"
@@ -17,6 +35,9 @@ class Project(Base):
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     settings = Column(Text)  # 存储JSON格式的项目设置
+    user_id = Column(Integer, ForeignKey("users.id"))
+
+    user = relationship("User", back_populates="projects")
 
     # 关系
     camera_configs = relationship("CameraConfig", back_populates="project", cascade="all, delete-orphan")
@@ -26,11 +47,7 @@ class Project(Base):
     detection_sessions = relationship("DetectionSession", back_populates="project", cascade="all, delete-orphan")
     recording_settings = relationship("RecordingSettings", back_populates="project", cascade="all, delete-orphan")
 
-    def __init__(self, name, description=None, settings=None):
-        self.name = name
-        self.description = description
-        if settings:
-            self.settings = json.dumps(settings)
+    
 
 
 class CameraConfig(Base):
@@ -326,23 +343,7 @@ class Model(Base):
                 setattr(self, key, value)
 
 
-class User(Base):
-    """用户表"""
-    __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
-    username = Column(String, unique=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
-    email = Column(String, unique=True)
-    is_active = Column(Boolean, default=True)
-    is_admin = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=func.now())
-
-    def __init__(self, username, hashed_password, email=None, is_admin=False):
-        self.username = username
-        self.hashed_password = hashed_password
-        self.email = email
-        self.is_admin = is_admin
 
 
 class RecordingSettings(Base):

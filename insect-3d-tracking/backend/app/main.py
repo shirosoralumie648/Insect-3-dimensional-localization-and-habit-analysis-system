@@ -9,7 +9,7 @@ import uvicorn
 from .config import settings
 from .database.session import engine, Base, get_db
 from .database import models
-from .api.endpoints import cameras, apriltag, detection, analysis, recording, datasets, models as model_api, projects
+from .api.api import api_router
 
 # 创建数据库表
 models.Base.metadata.create_all(bind=engine)
@@ -31,6 +31,8 @@ app = FastAPI(
     version=settings.APP_VERSION,
     docs_url=None,  # 自定义Swagger UI路径
 )
+
+app.include_router(api_router, prefix=settings.API_PREFIX)
 
 # 添加CORS中间件
 app.add_middleware(
@@ -58,15 +60,7 @@ app.mount("/ws", socket_app)
 # 设置API前缀和路由
 api_prefix = settings.API_PREFIX
 
-# 注册API路由
-app.include_router(cameras.router, prefix=f"{api_prefix}/cameras", tags=["相机控制"])
-app.include_router(apriltag.router, prefix=f"{api_prefix}/apriltag", tags=["Apriltag检测"])
-app.include_router(detection.router, prefix=f"{api_prefix}/detection", tags=["昆虫检测"])
-app.include_router(analysis.router, prefix=f"{api_prefix}/analysis", tags=["习性分析"])
-app.include_router(recording.router, prefix=f"{api_prefix}/recording", tags=["视频录制"])
-app.include_router(datasets.router, prefix=f"{api_prefix}/datasets", tags=["数据集管理"])
-app.include_router(model_api.router, prefix=f"{api_prefix}/models", tags=["模型管理"])
-app.include_router(projects.router, prefix=f"{api_prefix}/projects", tags=["项目管理"])
+
 
 # 根路由
 @app.get("/")

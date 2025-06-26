@@ -37,15 +37,37 @@ class ModelInDB(ModelBase):
         orm_mode = True
 
 
-class Model(ModelInDB):
+class ModelResponse(ModelInDB):
     """模型响应模型"""
     pass
+
+
+class TrainingJobBase(BaseModel):
+    """训练任务基础模型"""
+    model_id: int
+    status: str = "starting"
+    config: Optional[Dict[str, Any]] = None
+
+
+class TrainingJobCreate(TrainingJobBase):
+    """训练任务创建模型"""
+    pass
+
+
+class TrainingJobResponse(TrainingJobBase):
+    """训练任务响应模型"""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
 
 
 class ModelList(BaseModel):
     """模型列表响应模型"""
     total: int
-    items: List[Model]
+    items: List[ModelResponse]
 
 
 class TrainingSettings(BaseModel):

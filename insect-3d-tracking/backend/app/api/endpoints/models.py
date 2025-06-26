@@ -4,7 +4,7 @@ from typing import Any
 
 from ...database.session import get_db
 from ...database.models import User, Project, Dataset, Model
-from ...schemas.dataset_training import ModelCreate, ModelResponse, TrainingJobCreate, TrainingJobResponse
+from ...schemas.model import ModelCreate, ModelResponse, TrainingJobCreate, TrainingJobResponse
 from ...core.dataset import DatasetManager
 from ...core.training import training_manager
 from ..deps import get_current_active_user

@@ -1,13 +1,13 @@
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 from typing import Generator
 from datetime import timedelta
 
 from app.main import app
 from app.database.session import get_db
-from app.database.models import Base, User
+from app.database.models import Base, User, Project, Dataset
 from app.core.security import create_access_token, get_password_hash
 
 # 使用内存中的SQLite数据库进行测试
@@ -47,7 +47,7 @@ def db() -> Generator:
 
 
 @pytest.fixture(scope="function")
-def client(db: sessionmaker) -> Generator:
+def client(db: Session) -> Generator:
     """
     提供一个使用测试数据库的TestClient实例的Fixture。
     """
@@ -63,7 +63,7 @@ def client(db: sessionmaker) -> Generator:
 
 
 @pytest.fixture(scope="function")
-def test_user(db: sessionmaker) -> User:
+def test_user(db: Session) -> User:
     """
     在数据库中创建一个测试用户的Fixture。
     """
@@ -85,9 +85,7 @@ def auth_token(test_user: User) -> str:
     为测试用户生成认证令牌的Fixture。
     """
     access_token_expires = timedelta(minutes=30)
-    return create_access_token(
-        data={"sub": test_user.username}, expires_delta=access_token_expires
-    )
+    return create_access_token(subject=test_user.id, expires_delta=access_token_expires)
 
 
 @pytest.fixture(scope="function")
@@ -99,7 +97,7 @@ def auth_headers(auth_token: str) -> dict:
 
 
 @pytest.fixture(scope="function")
-def test_project(db: Session, test_user: User) -> Project:
+def test_project(db: Session, test_user: User) -> "Project":
     """
     在数据库中创建一个测试项目的Fixture。
     """

@@ -14,7 +14,7 @@ from ..config import settings
 class DatasetManager:
     """数据集管理器类"""
     
-    def __init__(self, dataset_name: str, base_dir: str = settings.DATASET_DIR):
+    def __init__(self, dataset_name: str, base_dir: str = settings.DATASET_PATH):
         """
         初始化数据集管理器
         

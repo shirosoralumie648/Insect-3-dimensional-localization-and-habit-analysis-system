@@ -23,7 +23,7 @@ def test_login_for_access_token(client: TestClient, test_user) -> None:
         "username": test_user.username,
         "password": "testpassword",
     }
-    response = client.post("/api/auth/token", data=login_data)
+    response = client.post("/api/auth/login", data=login_data)
     assert response.status_code == 200
     tokens = response.json()
     assert "access_token" in tokens

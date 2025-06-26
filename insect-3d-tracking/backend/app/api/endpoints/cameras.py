@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict
 
 from ...database.session import get_db
 from ...database.models import CameraConfig, User, Project
@@ -82,39 +82,18 @@ def create_camera_config(
     """
     创建新的相机配置
     """
-    # 确认项目存在且用户有访问权限
     project = db.query(Project).filter(Project.id == config_in.project_id).first()
     if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="项目不存在"
-        )
-    
+        raise HTTPException(status_code=404, detail="项目不存在")
+
     if project.user_id != current_user.id and not current_user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="没有权限访问此项目"
-        )
-    
-    # 创建相机配置
-    config = CameraConfig(
-        project_id=config_in.project_id,
-        name=config_in.name,
-        camera_index=config_in.camera_index,
-        width=config_in.width,
-        height=config_in.height,
-        fps=config_in.fps,
-        camera_matrix=config_in.camera_matrix,
-        dist_coeffs=config_in.dist_coeffs,
-        rotation_vector=config_in.rotation_vector,
-        translation_vector=config_in.translation_vector,
-        is_calibrated=config_in.is_calibrated,
-        config=config_in.config,
-    )
-    db.add(config)
+        raise HTTPException(status_code=403, detail="没有权限访问此项目")
+
+    db_config = CameraConfig(**config_in.model_dump())
+    db.add(db_config)
     db.commit()
-    db.refresh(config)
-    return config
+    db.refresh(db_config)
+    return db_config
 
 
 @router.get("/{config_id}", response_model=CameraConfigSchema)
@@ -182,7 +161,7 @@ def update_camera_config(
             detail="没有权限修改此项目的相机配置"
         )
     
-    update_data = config_in.dict(exclude_unset=True)
+    update_data = config_in.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(config, field, value)
     
@@ -192,7 +171,7 @@ def update_camera_config(
     return config
 
 
-@router.delete("/{config_id}", response_model=CameraConfigSchema)
+@router.delete("/{config_id}", response_model=Dict[str, str])
 def delete_camera_config(
     *,
     db: Session = Depends(get_db),
@@ -208,7 +187,7 @@ def delete_camera_config(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="相机配置不存在"
         )
-    
+
     # 确认用户有权限删除该项目的相机配置
     project = db.query(Project).filter(Project.id == config.project_id).first()
     if not project:
@@ -216,13 +195,13 @@ def delete_camera_config(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="项目不存在"
         )
-    
+
     if project.user_id != current_user.id and not current_user.is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="没有权限删除此项目的相机配置"
         )
-    
+
     db.delete(config)
     db.commit()
-    return config
+    return {"message": "Camera config deleted successfully"}

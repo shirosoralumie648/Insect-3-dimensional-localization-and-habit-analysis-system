@@ -67,6 +67,7 @@ class CameraConfig(Base):
     distortion_coeffs = Column(Text)  # 存储JSON格式的畸变系数
     position = Column(Text)  # JSON格式的相机位置(x,y,z)
     rotation = Column(Text)  # JSON格式的相机旋转(四元数)
+    is_calibrated = Column(Boolean, default=False, nullable=False)
 
     # 关系
     project = relationship("Project", back_populates="camera_configs")
@@ -77,10 +78,11 @@ class CameraConfig(Base):
         self.width = width
         self.height = height
         self.fps = fps
+        self.is_calibrated = kwargs.get('is_calibrated', False)
         for key, value in kwargs.items():
             if key in ['camera_matrix', 'distortion_coeffs', 'position', 'rotation'] and value:
                 setattr(self, key, json.dumps(value))
-            else:
+            elif key != 'is_calibrated':
                 setattr(self, key, value)
                 
 

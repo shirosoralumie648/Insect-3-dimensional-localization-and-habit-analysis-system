@@ -16,9 +16,14 @@ import asyncio
 from ...database.session import get_db
 from ...database.models import ApriltagConfig, CameraConfig, User, Project
 from ...schemas.apriltag import (
-    ApriltagConfigCreate, ApriltagConfigUpdate, ApriltagDetectionRequest,
-    ApriltagDetectionResult, CalibrationSettings, ApriltagDetection as ApriltagDetectionSchema,
-    CalibrationData
+    ApriltagConfig as ApriltagConfigSchema,
+    ApriltagConfigCreate,
+    ApriltagConfigUpdate,
+    ApriltagConfigList,
+    ApriltagDetection as ApriltagDetectionSchema,
+    ApriltagDetectionRequest,
+    ApriltagDetectionResult,
+    CalibrationSettings
 )
 from ...core.apriltag import ApriltagDetector, ApriltagDetection, calibrate_camera, estimate_pose
 from ...core.camera import get_camera_instance
@@ -434,18 +439,18 @@ async def calibrate_camera_endpoint(
     )
     
     # 更新相机配置
-    camera_config.camera_matrix = camera_matrix.tolist()
-    camera_config.dist_coeffs = dist_coeffs.tolist()
-    camera_config.is_calibrated = True
-    
-    db.add(camera_config)
+    update_data = {
+        CameraConfig.camera_matrix: json.dumps(camera_matrix.tolist()),
+        CameraConfig.distortion_coeffs: json.dumps(dist_coeffs.tolist()),
+        CameraConfig.is_calibrated: True
+    }
+    db.query(CameraConfig).filter(CameraConfig.id == settings.camera_config_id).update(update_data)
     db.commit()
-    db.refresh(camera_config)
-    
+
     return {
         "success": True,
         "camera_matrix": camera_matrix.tolist(),
-        "dist_coeffs": dist_coeffs.tolist(),
+        "distortion_coeffs": dist_coeffs.tolist(),
         "reprojection_error": float(reprojection_error),
         "num_images_used": len(image_points)
     }

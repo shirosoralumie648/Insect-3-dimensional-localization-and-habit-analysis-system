@@ -89,6 +89,9 @@ def test_calibrate_camera(client: TestClient, db: Session, auth_headers: dict, t
     db.refresh(camera_config)
     db.refresh(apriltag_config)
 
+    # Store the ID before the instance becomes detached
+    camera_config_id = camera_config.id
+
     # 2. 准备请求数据
     settings_payload = {
         "camera_config_id": camera_config.id,
@@ -134,13 +137,15 @@ def test_calibrate_camera(client: TestClient, db: Session, auth_headers: dict, t
     content = response.json()
     assert content["success"] is True
     assert content["camera_matrix"] == fake_camera_matrix.tolist()
-    assert content["dist_coeffs"] == fake_dist_coeffs.tolist()
+    assert content["distortion_coeffs"] == fake_dist_coeffs.tolist()
     assert content["reprojection_error"] == fake_reprojection_error
     assert content["num_images_used"] >= 1
     mock_calibrate.assert_called_once()
 
     # Check if the camera config was updated in the DB
-    db.refresh(camera_config)
-    assert camera_config.is_calibrated is True
-    assert camera_config.camera_matrix == fake_camera_matrix.tolist()
-    assert camera_config.dist_coeffs == fake_dist_coeffs.tolist()
+    import json
+    # Re-fetch the object from the database to get the updated state across sessions
+    updated_camera_config = db.query(CameraConfig).filter(CameraConfig.id == camera_config_id).one()
+    assert updated_camera_config.is_calibrated is True
+    assert json.loads(updated_camera_config.camera_matrix) == fake_camera_matrix.tolist()
+    assert json.loads(updated_camera_config.distortion_coeffs) == fake_dist_coeffs.tolist()

@@ -79,6 +79,10 @@ class StereoCalibrationResult(BaseModel):
     success: bool
 
 
+class ApriltagDetectionRequest(BaseModel):
+    image_base64: str
+    settings: 'ApriltagDetectionSettings'
+
 class ApriltagDetectionSettings(BaseModel):
     """Apriltag检测设置"""
     apriltag_config_id: int

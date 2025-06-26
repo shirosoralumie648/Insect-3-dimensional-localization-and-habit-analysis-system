@@ -16,6 +16,7 @@ import asyncio
 from ...database.session import get_db
 from ...database.models import ApriltagConfig, CameraConfig, User, Project
 from ...schemas.apriltag import (
+    ApriltagDetectionRequest,
     ApriltagConfig as ApriltagConfigSchema,
     ApriltagConfigCreate,
     ApriltagConfigUpdate,
@@ -227,73 +228,18 @@ def delete_apriltag_config(
     return config
 
 
-@router.post("/detect")
+@router.post("/detect", response_model=List[ApriltagDetectionResult])
 async def detect_apriltags(
-    settings: ApriltagDetectionSettings,
+    request: ApriltagDetectionRequest,
     db: Session = Depends(get_db),
-    camera_index: Optional[int] = None,
-    image: Optional[UploadFile] = None,
-    base64_image: Optional[str] = None,
     current_user: User = Depends(get_current_active_user),
 ) -> Any:
     """
-    检测Apriltag
-    可以从相机、上传文件或Base64编码图像进行检测
+    检测Apriltag.
+    输入为Base64编码的图像.
     """
-    # 获取图像
-    if camera_index is not None:
-        # 从相机获取图像
-        camera = get_camera_instance(camera_index)
-        if not camera.is_running:
-            success = camera.open()
-            if not success:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="无法打开相机"
-                )
-        
-        ret, frame = camera.get_frame()
-        if not ret:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="获取相机图像帧失败"
-            )
-    
-    elif image is not None:
-        # 从上传文件获取图像
-        contents = await image.read()
-        nparr = np.frombuffer(contents, np.uint8)
-        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        if frame is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="无法解码图像文件"
-            )
-    
-    elif base64_image is not None:
-        # 从Base64编码获取图像
-        try:
-            # 移除可能的"data:image/jpeg;base64,"前缀
-            if "base64," in base64_image:
-                base64_image = base64_image.split("base64,")[1]
-            
-            imgdata = base64.b64decode(base64_image)
-            nparr = np.frombuffer(imgdata, np.uint8)
-            frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-            if frame is None:
-                raise ValueError("无法解码Base64图像")
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"无法解码Base64图像: {str(e)}"
-            )
-    
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="需要提供camera_index、image或base64_image之一"
-        )
-    
+    settings = request.settings
+
     # 获取Apriltag配置
     apriltag_config = db.query(ApriltagConfig).filter(ApriltagConfig.id == settings.apriltag_config_id).first()
     if not apriltag_config:
@@ -308,6 +254,24 @@ async def detect_apriltags(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="没有权限访问此项目的Apriltag配置"
+        )
+
+    # 从Base64编码获取图像
+    try:
+        image_base64 = request.image_base64
+        # 移除可能的"data:image/jpeg;base64,"前缀
+        if "base64," in image_base64:
+            image_base64 = image_base64.split("base64,")[1]
+        
+        imgdata = base64.b64decode(image_base64)
+        nparr = np.frombuffer(imgdata, np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if frame is None:
+            raise ValueError("无法解码Base64图像")
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"无法解码Base64图像: {str(e)}"
         )
 
     # 创建检测器
@@ -327,37 +291,17 @@ async def detect_apriltags(
     # 准备结果
     detection_results = []
     for detection in detections:
-        result = {
-            "tag_id": detection.tag_id,
-            "center": detection.center,
-            "corners": detection.corners,
-            "hamming": detection.hamming,
-            "decision_margin": detection.decision_margin,
-        }
+        result = ApriltagDetectionResult(
+            tag_id=detection.tag_id,
+            center=detection.center.tolist(),
+            corners=detection.corners.tolist(),
+            hamming=detection.hamming,
+            decision_margin=detection.decision_margin,
+            success=True # Assuming detection implies success
+        )
         detection_results.append(result)
     
-    # 如果需要，绘制结果
-    if settings.draw_detections:
-        result_frame = detector.draw_detections(frame, detections)
-        
-        # 转换为JPEG格式的Base64
-        _, buffer = cv2.imencode('.jpg', result_frame)
-        jpg_base64 = base64.b64encode(buffer).decode('utf-8')
-        
-        return {
-            "detections": detection_results,
-            "count": len(detections),
-            "image_width": frame.shape[1],
-            "image_height": frame.shape[0],
-            "result_image": jpg_base64
-        }
-    
-    return {
-        "detections": detection_results,
-        "count": len(detections),
-        "image_width": frame.shape[1],
-        "image_height": frame.shape[0]
-    }
+    return detection_results
 
 
 @router.post("/calibrate")

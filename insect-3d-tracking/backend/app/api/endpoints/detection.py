@@ -74,12 +74,11 @@ def create_detection_session(
     session = DetectionSession(
         project_id=session_in.project_id,
         name=session_in.name,
-        description=session_in.description,
-        model_path=session_in.model_path,
-        config=session_in.config,
-        status="created",
-        created_by=current_user.id
+        config=session_in.config.model_dump() if session_in.config else None
     )
+    session.model_path = session_in.model_path
+    session.status = "created"
+    session.created_by = current_user.id
     
     db.add(session)
     db.commit()

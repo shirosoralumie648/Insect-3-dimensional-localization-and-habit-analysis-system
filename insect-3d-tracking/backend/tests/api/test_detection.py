@@ -9,7 +9,7 @@ def test_start_detection_session(client: TestClient, auth_headers: dict, test_pr
     """
     测试开始一个新的检测会话。
     """
-    response = client.post(f"/api/detection/session/start?project_id={test_project.id}", headers=auth_headers)
+    response = client.post(f"/api/detection/sessions/", headers=auth_headers, json={"project_id": test_project.id, "name": "Test Session"})
     assert response.status_code == 200
     content = response.json()
     assert "id" in content
@@ -55,7 +55,7 @@ def test_get_detection_session(client: TestClient, auth_headers: dict, test_proj
     db.commit()
     db.refresh(session)
 
-    response = client.get(f"/api/detection/session/{session.id}", headers=auth_headers)
+    response = client.get(f"/api/detection/sessions/{session.id}", headers=auth_headers)
     assert response.status_code == 200
     content = response.json()
     assert content["id"] == session.id
@@ -70,10 +70,10 @@ def test_delete_detection_session(client: TestClient, auth_headers: dict, test_p
     db.commit()
     db.refresh(session)
 
-    response = client.delete(f"/api/detection/session/{session.id}", headers=auth_headers)
+    response = client.delete(f"/api/detection/sessions/{session.id}", headers=auth_headers)
     assert response.status_code == 200
     content = response.json()
-    assert content["message"] == "Detection session and its results deleted successfully"
+    assert content["id"] == session.id
 
     deleted_session = db.query(DetectionSession).filter(DetectionSession.id == session.id).first()
     assert deleted_session is None

@@ -52,14 +52,12 @@ def client(db: Session) -> Generator:
     提供一个使用测试数据库的TestClient实例的Fixture。
     """
     def override_get_db():
-        try:
-            yield db
-        finally:
-            db.close()
+        yield db
 
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as c:
         yield c
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture(scope="function")

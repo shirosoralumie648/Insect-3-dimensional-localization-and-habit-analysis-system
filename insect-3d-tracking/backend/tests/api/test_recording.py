@@ -1,81 +1,78 @@
+import os
 from fastapi.testclient import TestClient
 from unittest.mock import MagicMock, patch
+from sqlalchemy.orm import Session
 
-from app.database.models import Project
+from app.database.models import Project, RecordingSettings, Video
 
-def test_update_and_get_recording_settings(client: TestClient, auth_headers: dict, test_project: Project) -> None:
+def test_recording_workflow(client: TestClient, db: Session, auth_headers: dict, test_project: Project, mocker) -> None:
     """
-    测试更新和获取录制设置。
+    测试完整的录制工作流程：创建设置 -> 开始 -> 状态 -> 停止 -> 列表 -> 删除
     """
+    # 1. 创建录制设置
     settings_data = {
-        "resolution": "1080p",
+        "project_id": test_project.id,
+        "width": 1920,
+        "height": 1080,
         "fps": 30,
-        "codec": "mp4v"
+        "fourcc": "mp4v",
+        "output_dir": "/tmp/videos",
+        "filename_prefix": "test_vid"
     }
-    response = client.put(f"/api/recording/settings?project_id={test_project.id}", json=settings_data, headers=auth_headers)
-    assert response.status_code == 200
-    assert response.json()["resolution"] == "1080p"
+    response = client.post("/api/recording/settings/", json=settings_data, headers=auth_headers)
+    assert response.status_code == 200, response.text
+    settings = response.json()
+    settings_id = settings["id"]
+    assert settings["width"] == 1920
 
-    response = client.get(f"/api/recording/settings?project_id={test_project.id}", headers=auth_headers)
-    assert response.status_code == 200
+    # 2. 读取录制设置
+    response = client.get(f"/api/recording/settings/{settings_id}", headers=auth_headers)
+    assert response.status_code == 200, response.text
     assert response.json()["fps"] == 30
 
-def test_start_recording(client: TestClient, auth_headers: dict, test_project: Project, mocker) -> None:
-    """
-    测试开始录制。
-    """
-    mock_start = MagicMock()
-    mocker.patch('app.api.endpoints.recording.VideoRecorder.start', mock_start)
+    camera_index = 0
 
-    response = client.post(f"/api/recording/start?project_id={test_project.id}", headers=auth_headers)
-    assert response.status_code == 200
-    assert response.json()["status"] == "Recording started for project Test Project"
-    mock_start.assert_called_once()
+    # 模拟 VideoRecorder
+    mock_recorder_instance = MagicMock()
+    mock_recorder_instance.get_status.return_value = {'is_recording': True}
+    mock_recorder_instance.stop.return_value = {
+        'output_path': '/tmp/videos/test.mp4',
+        'duration': 10.5,
+    }
+    mock_recorder_instance.frame_size = (1920, 1080)
+    mock_recorder_instance.fps = 30.0
+    mocker.patch('app.api.endpoints.recording.get_recorder_instance', return_value=mock_recorder_instance)
+    mocker.patch('app.api.endpoints.recording.recorders', {camera_index: mock_recorder_instance})
 
-def test_stop_recording(client: TestClient, auth_headers: dict, test_project: Project, mocker) -> None:
-    """
-    测试停止录制。
-    """
-    mock_stop = MagicMock()
-    mocker.patch('app.api.endpoints.recording.VideoRecorder.stop', mock_stop)
+    # 3. 开始录制
+    response = client.post(f"/api/recording/start/{camera_index}?settings_id={settings_id}", headers=auth_headers)
+    assert response.status_code == 200, response.text
+    assert response.json()["message"] == "录制已开始"
+    mock_recorder_instance.start.assert_called_once()
 
-    response = client.post(f"/api/recording/stop?project_id={test_project.id}", headers=auth_headers)
-    assert response.status_code == 200
-    assert response.json()["status"] == "Recording stopped for project Test Project"
-    mock_stop.assert_called_once()
-
-def test_get_recording_status(client: TestClient, auth_headers: dict, test_project: Project, mocker) -> None:
-    """
-    测试获取录制状态。
-    """
-    mock_status = MagicMock(return_value={"is_recording": True})
-    mocker.patch('app.api.endpoints.recording.VideoRecorder.get_status', mock_status)
-
-    response = client.get(f"/api/recording/status?project_id={test_project.id}", headers=auth_headers)
-    assert response.status_code == 200
+    # 4. 获取录制状态
+    response = client.get(f"/api/recording/status/{camera_index}", headers=auth_headers)
+    assert response.status_code == 200, response.text
     assert response.json()["is_recording"] is True
-    mock_status.assert_called_once()
 
-def test_list_videos(client: TestClient, auth_headers: dict, test_project: Project, mocker) -> None:
-    """
-    测试列出所有录制的视频。
-    """
-    with patch('os.path.exists', return_value=True), \
-         patch('os.listdir', return_value=["video1.mp4", "video2.avi"]):
-        response = client.get(f"/api/recording/videos?project_id={test_project.id}", headers=auth_headers)
-        assert response.status_code == 200
-        content = response.json()
-        assert isinstance(content, list)
-        assert len(content) == 2
-        assert "video1.mp4" in [v['filename'] for v in content]
+    # 5. 停止录制
+    response = client.post(f"/api/recording/stop/{camera_index}", headers=auth_headers)
+    assert response.status_code == 200, response.text
+    video_data = response.json()
+    video_id = video_data["id"]
+    assert video_data["name"] == "test.mp4"
 
-def test_delete_video(client: TestClient, auth_headers: dict, test_project: Project, mocker) -> None:
-    """
-    测试删除一个视频。
-    """
-    with patch('os.path.exists', return_value=True), \
-         patch('os.remove') as mock_remove:
-        response = client.delete(f"/api/recording/videos/video1.mp4?project_id={test_project.id}", headers=auth_headers)
-        assert response.status_code == 200
-        assert response.json()["message"] == "Video video1.mp4 deleted successfully"
-        mock_remove.assert_called_once()
+    # 6. 列出视频
+    response = client.get(f"/api/recording/videos/?project_id={test_project.id}", headers=auth_headers)
+    assert response.status_code == 200, response.text
+    videos = response.json()
+    assert len(videos) > 0
+    assert videos[0]["name"] == "test.mp4"
+
+    # 7. 删除视频
+    mock_os_path_exists = mocker.patch('os.path.exists', return_value=True)
+    mock_os_remove = mocker.patch('os.remove')
+    response = client.delete(f"/api/recording/videos/{video_id}", headers=auth_headers)
+    assert response.status_code == 200, response.text
+    mock_os_path_exists.assert_called_once()
+    mock_os_remove.assert_called_once()

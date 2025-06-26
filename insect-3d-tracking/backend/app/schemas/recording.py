@@ -7,7 +7,7 @@ from datetime import datetime
 class VideoBase(BaseModel):
     """视频基础模型"""
     name: str
-    file_path: str
+    path: str
     camera_index: Optional[int] = None
     duration: Optional[float] = None
     width: Optional[int] = None
@@ -34,7 +34,7 @@ class VideoInDB(VideoBase):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class VideoResponse(VideoInDB):
@@ -76,7 +76,7 @@ class RecordingSettingsInDB(RecordingSettingsBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class RecordingSettingsResponse(RecordingSettingsInDB):

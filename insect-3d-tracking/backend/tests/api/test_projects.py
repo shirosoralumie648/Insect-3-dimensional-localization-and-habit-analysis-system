@@ -7,12 +7,15 @@ def test_create_project(client: TestClient, auth_headers: dict) -> None:
     """
     测试创建一个新项目。
     """
-    data = {"name": "Test Project", "description": "A project for testing purposes."}
-    response = client.post("/api/projects/", json=data, headers=auth_headers)
+    project_data = {
+        "name": "New Test Project",
+        "description": "This is a new test project."
+    }
+    response = client.post("/api/projects/", json=project_data, headers=auth_headers)
     assert response.status_code == 200
     content = response.json()
-    assert content["name"] == data["name"]
-    assert content["description"] == data["description"]
+    assert content["name"] == project_data["name"]
+    assert content["description"] == project_data["description"]
     assert "id" in content
     assert "user_id" in content
 
@@ -28,7 +31,10 @@ def test_get_projects(client: TestClient, auth_headers: dict, test_user: User, d
     response = client.get("/api/projects/", headers=auth_headers)
     assert response.status_code == 200
     content = response.json()
-    assert isinstance(content, list)
+    assert isinstance(content, dict)
+    assert "items" in content
+    assert "total" in content
+    assert isinstance(content["items"], list)
     assert len(content) > 0
     assert content[0]["name"] == "List Test Project"
 

@@ -51,7 +51,7 @@ def create_project(
         user_id=current_user.id,
         name=project_in.name,
         description=project_in.description,
-        config=project_in.config,
+        settings=project_in.settings,
     )
     db.add(project)
     db.commit()
@@ -118,7 +118,7 @@ def update_project(
     return project
 
 
-@router.delete("/{project_id}", response_model=ProjectSchema)
+@router.delete("/{project_id}", response_model=dict)
 def delete_project(
     *,
     db: Session = Depends(get_db),
@@ -143,4 +143,4 @@ def delete_project(
     
     db.delete(project)
     db.commit()
-    return project
+    return {"message": "Project deleted successfully"}

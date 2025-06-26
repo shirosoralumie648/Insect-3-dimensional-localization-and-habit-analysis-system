@@ -230,6 +230,7 @@ def delete_apriltag_config(
 @router.post("/detect")
 async def detect_apriltags(
     settings: ApriltagDetectionSettings,
+    db: Session = Depends(get_db),
     camera_index: Optional[int] = None,
     image: Optional[UploadFile] = None,
     base64_image: Optional[str] = None,
@@ -293,9 +294,25 @@ async def detect_apriltags(
             detail="需要提供camera_index、image或base64_image之一"
         )
     
+    # 获取Apriltag配置
+    apriltag_config = db.query(ApriltagConfig).filter(ApriltagConfig.id == settings.apriltag_config_id).first()
+    if not apriltag_config:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Apriltag配置不存在"
+        )
+
+    # 确认用户有权限访问该项目
+    project = db.query(Project).filter(Project.id == apriltag_config.project_id).first()
+    if not project or (project.user_id != current_user.id and not current_user.is_admin):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="没有权限访问此项目的Apriltag配置"
+        )
+
     # 创建检测器
     detector = ApriltagDetector(
-        family=settings.family,
+        family=apriltag_config.tag_family,
         nthreads=settings.nthreads,
         quad_decimate=settings.quad_decimate,
         quad_sigma=settings.quad_sigma,

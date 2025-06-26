@@ -32,7 +32,7 @@ def test_calibrate_camera(client: TestClient, auth_headers: dict, test_project: 
     """
     # 模拟核心标定函数
     mock_calibrate = MagicMock(return_value=({"mtx": [[1,0,0],[0,1,0],[0,0,1]], "dist": [0,0,0,0,0]}, 0.1))
-    mocker.patch('app.core.apriltag.CameraCalibrator.calibrate', mock_calibrate)
+    mocker.patch('app.api.endpoints.apriltag.calibrate_camera', mock_calibrate)
 
     # 模拟图像文件上传
     fake_image_bytes = b"fake image data"

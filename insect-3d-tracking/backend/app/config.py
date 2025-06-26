@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     DEBUG: bool = os.getenv("DEBUG", "True").lower() in ("true", "1", "t")
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your_secret_key_here_change_in_production")
     API_PREFIX: str = os.getenv("API_PREFIX", "/api")
+
+    # JWT
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+    ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
     
     # 数据库配置
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./insect_tracker.db")

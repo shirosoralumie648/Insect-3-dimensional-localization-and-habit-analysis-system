@@ -37,7 +37,6 @@ def create_user(
     *,
     db: Session = Depends(get_db),
     user_in: UserCreate,
-    current_user: User = Depends(get_current_active_admin),
 ) -> Any:
     """
     创建新用户，需要管理员权限

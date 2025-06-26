@@ -3,91 +3,106 @@ from typing import Optional, Dict, Any, List, Union
 from datetime import datetime
 
 
+# Video Schemas
 class VideoBase(BaseModel):
     """视频基础模型"""
     name: str
+    file_path: str
     camera_index: Optional[int] = None
-    duration: Optional[float] = None  # 视频时长(秒)
+    duration: Optional[float] = None
     width: Optional[int] = None
     height: Optional[int] = None
     fps: Optional[float] = None
-    format: Optional[str] = None
+    file_size: Optional[int] = None
+    codec_name: Optional[str] = None
 
 
 class VideoCreate(VideoBase):
     """视频创建模型"""
     project_id: int
-    path: str
 
 
 class VideoUpdate(BaseModel):
     """视频更新模型"""
     name: Optional[str] = None
-    duration: Optional[float] = None
-    width: Optional[int] = None
-    height: Optional[int] = None
-    fps: Optional[float] = None
-    format: Optional[str] = None
 
 
 class VideoInDB(VideoBase):
     """数据库中的视频模型"""
     id: int
     project_id: int
-    path: str
     created_at: datetime
 
     class Config:
         orm_mode = True
 
 
-class Video(VideoInDB):
+class VideoResponse(VideoInDB):
     """视频响应模型"""
     pass
 
 
-class VideoList(BaseModel):
-    """视频列表响应模型"""
-    total: int
-    items: List[Video]
+# Recording Settings Schemas
+class RecordingSettingsBase(BaseModel):
+    """录制设置基础模型"""
+    name: str = "Default Recording Settings"
+    project_id: int
+    output_dir: Optional[str] = None
+    filename_prefix: Optional[str] = "video"
+    fourcc: Optional[str] = "mp4v"
+    fps: Optional[int] = 30
+    width: Optional[int] = 1920
+    height: Optional[int] = 1080
 
 
-class RecordingSettings(BaseModel):
-    """录制设置"""
-    camera_indices: List[int]  # 要录制的相机索引列表
-    width: int
-    height: int
-    fps: int
-    format: str = "mp4"  # 视频格式
-    codec: str = "h264"  # 编码器
-    quality: int = 23  # 编码质量(较低的值表示更高的质量)
-    segment_time: Optional[int] = None  # 分段时长(秒)，None表示不分段
+class RecordingSettingsCreate(RecordingSettingsBase):
+    """录制设置创建模型"""
+    pass
 
 
-class RecordingState(BaseModel):
+class RecordingSettingsUpdate(BaseModel):
+    """录制设置更新模型"""
+    name: Optional[str] = None
+    output_dir: Optional[str] = None
+    filename_prefix: Optional[str] = None
+    fourcc: Optional[str] = None
+    fps: Optional[int] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+
+
+class RecordingSettingsInDB(RecordingSettingsBase):
+    """数据库中的录制设置模型"""
+    id: int
+
+    class Config:
+        orm_mode = True
+
+
+class RecordingSettingsResponse(RecordingSettingsInDB):
+    """录制设置响应模型"""
+    pass
+
+
+# Recording Status & Control
+class RecordingStatus(BaseModel):
     """录制状态"""
-    camera_index: int
     is_recording: bool
-    recording_path: Optional[str] = None
     start_time: Optional[datetime] = None
     elapsed_time: Optional[float] = None
     frame_count: Optional[int] = None
+    output_path: Optional[str] = None
     error: Optional[str] = None
 
 
-class RecordingStateList(BaseModel):
-    """录制状态列表响应模型"""
-    total: int
-    items: List[RecordingState]
-
-
-class VideoConversionSettings(BaseModel):
-    """视频转换设置"""
+# Video Conversion Schemas
+class VideoConversionRequest(BaseModel):
+    """视频转换请求"""
     input_path: str
-    output_path: Optional[str] = None
+    output_path: str
     output_format: str = "mp4"
-    resize: Optional[Dict[str, int]] = None  # {width, height}
-    fps: Optional[int] = None
-    start_time: Optional[Union[float, str]] = None
-    end_time: Optional[Union[float, str]] = None
+    video_codec: Optional[str] = "libx264"
+    audio_codec: Optional[str] = "aac"
     bitrate: Optional[str] = None
+    frame_rate: Optional[int] = None
+    resolution: Optional[str] = None # e.g., "1280x720"

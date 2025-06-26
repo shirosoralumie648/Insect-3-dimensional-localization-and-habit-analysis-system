@@ -5,7 +5,7 @@ import shutil
 
 from ...database.session import get_db
 from ...database.models import User, Project, Dataset
-from ...schemas.dataset_training import DatasetCreate, DatasetResponse, AnnotationCreate
+from ...schemas.dataset import DatasetCreate, DatasetResponse, AnnotationCreate
 from ...core.dataset import DatasetManager
 from ..deps import get_current_active_user
 from ...config import settings

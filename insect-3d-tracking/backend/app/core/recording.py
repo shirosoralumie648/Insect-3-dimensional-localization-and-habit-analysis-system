@@ -18,7 +18,7 @@ class VideoRecorder:
     def __init__(
         self, 
         camera_index: int,
-        output_dir: str = settings.VIDEO_DIR,
+        output_dir: str = settings.VIDEO_PATH,
         filename_prefix: str = "video",
         fourcc: str = "mp4v",
         fps: Optional[float] = None,

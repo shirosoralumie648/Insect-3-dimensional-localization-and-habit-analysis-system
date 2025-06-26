@@ -24,6 +24,7 @@ class Project(Base):
     videos = relationship("Video", back_populates="project", cascade="all, delete-orphan")
     datasets = relationship("Dataset", back_populates="project", cascade="all, delete-orphan")
     detection_sessions = relationship("DetectionSession", back_populates="project", cascade="all, delete-orphan")
+    recording_settings = relationship("RecordingSettings", back_populates="project", cascade="all, delete-orphan")
 
     def __init__(self, name, description=None, settings=None):
         self.name = name
@@ -342,3 +343,20 @@ class User(Base):
         self.hashed_password = hashed_password
         self.email = email
         self.is_admin = is_admin
+
+
+class RecordingSettings(Base):
+    """录制设置表"""
+    __tablename__ = "recording_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False, default="Default Recording Settings")
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"))
+    output_dir = Column(String)
+    filename_prefix = Column(String, default="video")
+    fourcc = Column(String, default="mp4v")
+    fps = Column(Integer, default=30)
+    width = Column(Integer, default=1920)
+    height = Column(Integer, default=1080)
+
+    project = relationship("Project", back_populates="recording_settings")

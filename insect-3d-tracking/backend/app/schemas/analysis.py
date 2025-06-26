@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Dict, Any, List
 from datetime import datetime
+import json
 
 
 class AnalysisSettings(BaseModel):
@@ -56,6 +57,16 @@ class AnalysisResultBase(BaseModel):
     spatial_heatmap: Dict[str, Any]
     behavior_summary: List[Dict[str, Any]]
 
+    @field_validator('trajectory_stats', 'activity_timeline', 'spatial_heatmap', 'behavior_summary', 'settings', mode='before')
+    @classmethod
+    def parse_json_fields(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError:
+                raise ValueError("invalid json")
+        return v
+
 
 class AnalysisResultCreate(AnalysisResultBase):
     """分析结果创建模型"""
@@ -76,7 +87,7 @@ class AnalysisResultInDB(AnalysisResultBase):
     created_by: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class AnalysisResultResponse(AnalysisResultInDB):

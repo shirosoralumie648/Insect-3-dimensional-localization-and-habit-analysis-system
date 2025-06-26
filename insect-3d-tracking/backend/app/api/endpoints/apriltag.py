@@ -16,15 +16,9 @@ import asyncio
 from ...database.session import get_db
 from ...database.models import ApriltagConfig, CameraConfig, User, Project
 from ...schemas.apriltag import (
-    ApriltagDetectionRequest,
-    ApriltagConfig as ApriltagConfigSchema,
-    ApriltagConfigCreate,
-    ApriltagConfigUpdate,
-    ApriltagConfigList,
-    ApriltagDetectionResult,
-    ApriltagDetectionSettings,
-    CalibrationData,
-    CalibrationSettings
+    ApriltagConfigCreate, ApriltagConfigUpdate, ApriltagDetectionRequest,
+    ApriltagDetectionResult, CalibrationSettings, ApriltagDetection as ApriltagDetectionSchema,
+    CalibrationData
 )
 from ...core.apriltag import ApriltagDetector, ApriltagDetection, calibrate_camera, estimate_pose
 from ...core.camera import get_camera_instance
@@ -228,7 +222,7 @@ def delete_apriltag_config(
     return config
 
 
-@router.post("/detect", response_model=List[ApriltagDetectionResult])
+@router.post("/detect", response_model=ApriltagDetectionResult)
 async def detect_apriltags(
     request: ApriltagDetectionRequest,
     db: Session = Depends(get_db),
@@ -289,19 +283,25 @@ async def detect_apriltags(
     detections = detector.detect(frame)
     
     # 准备结果
-    detection_results = []
+    detection_objects = []
     for detection in detections:
-        result = ApriltagDetectionResult(
-            tag_id=detection.tag_id,
-            center=detection.center.tolist(),
-            corners=detection.corners.tolist(),
-            hamming=detection.hamming,
-            decision_margin=detection.decision_margin,
-            success=True # Assuming detection implies success
+        def corners_to_dict(corners):
+            return [{'x': float(c[0]), 'y': float(c[1])} for c in corners]
+
+        detection_objects.append(
+            ApriltagDetectionSchema(
+                tag_family=detection.tag_family.decode('utf-8'),
+                tag_id=detection.tag_id,
+                center={'x': float(detection.center[0]), 'y': float(detection.center[1])},
+                corners=corners_to_dict(detection.corners),
+                pose=None # Not implemented yet
+            )
         )
-        detection_results.append(result)
     
-    return detection_results
+    return ApriltagDetectionResult(
+        detections=detection_objects,
+        timestamp=datetime.utcnow()
+    )
 
 
 @router.post("/calibrate")
@@ -345,7 +345,7 @@ async def calibrate_camera_endpoint(
     
     # 创建检测器
     detector = ApriltagDetector(
-        family=apriltag_config.family,
+        family=apriltag_config.tag_family,
         nthreads=settings.nthreads,
         quad_decimate=settings.quad_decimate,
         quad_sigma=settings.quad_sigma,

@@ -30,7 +30,7 @@ class ApriltagConfigInDB(ApriltagConfigBase):
     project_id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class ApriltagConfig(ApriltagConfigInDB):
@@ -119,4 +119,12 @@ class CalibrationSettings(BaseModel):
     num_images: int = Field(20, gt=0, description="用于标定的图像数量")
     min_images: int = Field(10, gt=0, description="成功标定所需的最少图像数量")
     capture_delay: float = Field(0.5, gt=0, description="图像采集间隔(秒)")
+
+    # Detector settings
+    nthreads: int = Field(1, description="Number of threads to use")
+    quad_decimate: float = Field(2.0, description="Decimate input image by this factor")
+    quad_sigma: float = Field(0.0, description="Apply Gaussian blur to quad detection")
+    refine_edges: bool = Field(True, description="Refine edges of quads")
+    decode_sharpening: float = Field(0.25, description="Sharpening for decoding")
+    debug: bool = Field(False, description="Enable debug output")
 

@@ -103,7 +103,7 @@ def analyze_trajectory(
     # 将分析结果保存到数据库
     analysis_result = AnalysisResult(
         session_id=session_id,
-        settings=settings.dict(),
+        settings=settings.model_dump(),
         trajectory_stats=basic_stats,
         activity_timeline=activity_timeline,
         spatial_heatmap=spatial_heatmap,

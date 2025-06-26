@@ -85,6 +85,15 @@ class ApriltagDetectionSettings(BaseModel):
     estimate_pose: bool = False
     camera_config_id: Optional[int] = None
 
+    # Detector settings
+    nthreads: int = Field(1, description="Number of threads to use")
+    quad_decimate: float = Field(2.0, description="Decimate input image by this factor")
+    quad_sigma: float = Field(0.0, description="Apply Gaussian blur to quad detection")
+    refine_edges: bool = Field(True, description="Refine edges of quads")
+    decode_sharpening: float = Field(0.25, description="Sharpening for decoding")
+    debug: bool = Field(False, description="Enable debug output")
+    draw_detections: bool = Field(False, description="Draw detections on the image and return it")
+
 
 class ApriltagDetectionResult(BaseModel):
     """Apriltag检测的完整结果"""

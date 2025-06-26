@@ -28,7 +28,7 @@ def test_detect_3d(client: TestClient, auth_headers: dict, test_project: Project
 
     # 模拟核心检测函数
     mock_detect_3d = MagicMock(return_value=([{"x": 1, "y": 2, "z": 3}]))
-    mocker.patch('app.core.detection.StereoDetector_3d.detect_3d', mock_detect_3d)
+    mocker.patch('app.api.endpoints.detection.Localizer3D.localize_3d', mock_detect_3d)
 
     # 模拟图像文件上传
     fake_image_bytes = b"fake image data"

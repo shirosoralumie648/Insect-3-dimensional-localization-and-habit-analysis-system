@@ -2,7 +2,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from unittest.mock import MagicMock
 
-from app.database.models import Project, DetectionSession, AnalysisResult
+from app.database.models import Project, DetectionSession, AnalysisResult, User
+import json
 
 def test_run_analysis(client: TestClient, auth_headers: dict, test_project: Project, db: Session, mocker) -> None:
     """
@@ -29,12 +30,12 @@ def test_run_analysis(client: TestClient, auth_headers: dict, test_project: Proj
     assert content["results"]["speed"]["mean"] == 0.1
     mock_run.assert_called_once()
 
-def test_get_analysis_result(client: TestClient, auth_headers: dict, test_project: Project, db: Session) -> None:
+def test_get_analysis_result(client: TestClient, auth_headers: dict, test_project: Project, db: Session, test_user: User) -> None:
     """
     测试获取分析结果。
     """
     session = DetectionSession(project_id=test_project.id)
-    analysis = AnalysisResult(detection_session=session, results={"speed": {"mean": 0.2}})
+    analysis = AnalysisResult(session_id=session.id, created_by=test_user.id, trajectory_stats=json.dumps({"speed": {"mean": 0.2}}))
     db.add_all([session, analysis])
     db.commit()
     db.refresh(analysis)
@@ -43,14 +44,15 @@ def test_get_analysis_result(client: TestClient, auth_headers: dict, test_projec
     assert response.status_code == 200
     content = response.json()
     assert content["id"] == analysis.id
+    assert "results" in content
     assert content["results"]["speed"]["mean"] == 0.2
 
-def test_delete_analysis_result(client: TestClient, auth_headers: dict, test_project: Project, db: Session) -> None:
+def test_delete_analysis_result(client: TestClient, auth_headers: dict, test_project: Project, db: Session, test_user: User) -> None:
     """
     测试删除分析结果。
     """
     session = DetectionSession(project_id=test_project.id)
-    analysis = AnalysisResult(detection_session=session, results={})
+    analysis = AnalysisResult(session_id=session.id, created_by=test_user.id, settings=json.dumps({'param': 'value'}))
     db.add_all([session, analysis])
     db.commit()
     db.refresh(analysis)

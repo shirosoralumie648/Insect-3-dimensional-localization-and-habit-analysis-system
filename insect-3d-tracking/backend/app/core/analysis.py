@@ -100,7 +100,20 @@ class TrajectoryAnalyzer:
         timeline = self.df.set_index('timestamp').resample(f'{time_interval_seconds}S')['distance'].sum()
         
         # 格式化输出
-        return {str(k): v for k, v in timeline.to_dict().items()}
+        return {k.strftime('%Y-%m-%d %H:%M:%S'): v for k, v in timeline.to_dict().items()}
+    
+    def run_analysis(self, time_interval_seconds: int = 60) -> Dict[str, Any]:
+        """执行完整的轨迹分析"""
+        if self.df.empty:
+            return {}
+        
+        basic_stats = self.get_basic_stats()
+        activity_timeline = self.get_activity_timeline(time_interval_seconds)
+        
+        return {
+            "basic_stats": basic_stats,
+            "activity_timeline": activity_timeline
+        }
     
     def get_spatial_heatmap(
         self, 

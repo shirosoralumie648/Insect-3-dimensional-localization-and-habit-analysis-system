@@ -25,7 +25,7 @@ def test_start_recording(client: TestClient, auth_headers: dict, test_project: P
     测试开始录制。
     """
     mock_start = MagicMock()
-    mocker.patch('app.core.recording.VideoManager.start_recording', mock_start)
+    mocker.patch('app.api.endpoints.recording.VideoRecorder.start', mock_start)
 
     response = client.post(f"/api/recording/start?project_id={test_project.id}", headers=auth_headers)
     assert response.status_code == 200
@@ -37,7 +37,7 @@ def test_stop_recording(client: TestClient, auth_headers: dict, test_project: Pr
     测试停止录制。
     """
     mock_stop = MagicMock()
-    mocker.patch('app.core.recording.VideoManager.stop_recording', mock_stop)
+    mocker.patch('app.api.endpoints.recording.VideoRecorder.stop', mock_stop)
 
     response = client.post(f"/api/recording/stop?project_id={test_project.id}", headers=auth_headers)
     assert response.status_code == 200
@@ -48,8 +48,8 @@ def test_get_recording_status(client: TestClient, auth_headers: dict, test_proje
     """
     测试获取录制状态。
     """
-    mock_status = MagicMock(return_value=True)
-    mocker.patch('app.core.recording.VideoManager.is_recording', mock_status)
+    mock_status = MagicMock(return_value={"is_recording": True})
+    mocker.patch('app.api.endpoints.recording.VideoRecorder.get_status', mock_status)
 
     response = client.get(f"/api/recording/status?project_id={test_project.id}", headers=auth_headers)
     assert response.status_code == 200

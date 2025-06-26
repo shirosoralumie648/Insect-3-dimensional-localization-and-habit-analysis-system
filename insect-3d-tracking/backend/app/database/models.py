@@ -210,18 +210,32 @@ class AnalysisResult(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     session_id = Column(Integer, ForeignKey("detection_sessions.id", ondelete="CASCADE"))
-    analysis_type = Column(String, nullable=False)  # 分析类型，如 'speed_distribution', 'turning_angle'
-    result_data = Column(Text)  # 存储JSON格式的分析结果
     created_at = Column(DateTime, default=func.now())
+    created_by = Column(Integer, ForeignKey("users.id"))
+
+    settings = Column(Text)  # JSON
+    trajectory_stats = Column(Text)  # JSON
+    activity_timeline = Column(Text)  # JSON
+    spatial_heatmap = Column(Text)  # JSON
+    behavior_summary = Column(Text)  # JSON
 
     # 关系
     session = relationship("DetectionSession", back_populates="analysis_results")
+    creator = relationship("User")
 
-    def __init__(self, session_id, analysis_type, result_data=None):
+    def __init__(self, session_id, created_by, settings=None, trajectory_stats=None, activity_timeline=None, spatial_heatmap=None, behavior_summary=None, **kwargs):
         self.session_id = session_id
-        self.analysis_type = analysis_type
-        if result_data:
-            self.result_data = json.dumps(result_data)
+        self.created_by = created_by
+        if settings:
+            self.settings = json.dumps(settings)
+        if trajectory_stats:
+            self.trajectory_stats = json.dumps(trajectory_stats, default=str)
+        if activity_timeline:
+            self.activity_timeline = json.dumps(activity_timeline, default=str)
+        if spatial_heatmap:
+            self.spatial_heatmap = json.dumps(spatial_heatmap, default=str)
+        if behavior_summary:
+            self.behavior_summary = json.dumps(behavior_summary, default=str)
 
 
 class Video(Base):

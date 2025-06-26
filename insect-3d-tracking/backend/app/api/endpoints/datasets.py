@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File,
 from sqlalchemy.orm import Session
 from typing import Any, List
 import shutil
+from pathlib import Path
 
 from ...database.session import get_db
 from ...database.models import User, Project, Dataset
@@ -26,7 +27,18 @@ def create_dataset(
     if not project or (project.user_id != current_user.id and not current_user.is_admin):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "没有权限在此项目下创建数据集")
 
-    dataset = Dataset(**dataset_in.dict(), created_by=current_user.id)
+    # 构造数据集路径
+    dataset_path = Path(settings.DATASET_PATH) / dataset_in.name
+    
+    # 检查路径是否已存在，避免冲突
+    if dataset_path.exists():
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"数据集目录 '{dataset_in.name}' 已存在.")
+
+    dataset_data = dataset_in.model_dump()
+    dataset = Dataset(
+        **dataset_data,
+        path=str(dataset_path)
+    )
     db.add(dataset)
     db.commit()
     db.refresh(dataset)

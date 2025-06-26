@@ -1,3 +1,5 @@
+import json
+import json
 from fastapi.testclient import TestClient
 from unittest.mock import MagicMock, patch
 from sqlalchemy.orm import Session
@@ -12,8 +14,10 @@ def test_start_new_training(client: TestClient, auth_headers: dict, test_dataset
     mock_start = MagicMock(return_value="test_train_job_123")
     mocker.patch('app.core.training.training_manager.start_training', mock_start)
     
-    # 模拟数据集已准备好
-    mocker.patch('pathlib.Path.exists', return_value=True)
+    # 模拟 DatasetManager 以避免文件系统交互
+    mock_dm_instance = MagicMock()
+    mock_dm_instance.config_path.exists.return_value = True
+    mocker.patch('app.api.endpoints.models.DatasetManager', return_value=mock_dm_instance)
 
     train_data = {
         "dataset_id": test_dataset.id,
@@ -67,11 +71,11 @@ def test_complete_training_job(client: TestClient, auth_headers: dict, test_data
     job_id = "test_train_job_456"
     # 先创建一个模型记录与job_id关联
     model = Model(
-        project_id=test_dataset.project_id,
         dataset_id=test_dataset.id,
         name=f"model_for_{job_id}",
-        train_job_id=job_id,
-        status="training"
+        path=f"/fake/models/{job_id}",
+        status="training",
+        train_job_id=job_id
     )
     db.add(model)
     db.commit()

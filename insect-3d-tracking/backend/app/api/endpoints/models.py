@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Any
+import json
 
 from ...database.session import get_db
 from ...database.models import User, Project, Dataset, Model
@@ -45,15 +46,17 @@ def start_new_training(
             device=job_in.device
         )
         
+        model_config = {
+            'parameters': job_in.model_dump()
+        }
         model = Model(
-            project_id=dataset.project_id,
             dataset_id=dataset.id,
             name=f"{dataset.name}_{train_id}",
-            version="1.0",
+            path=f"/path/to/models/{dataset.name}_{train_id}",  # Placeholder path
             status="training",
             train_job_id=train_id,
-            parameters=job_in.dict(),
-            created_by=current_user.id
+            config=json.dumps(model_config),
+            type=job_in.base_model
         )
         db.add(model)
         db.commit()
@@ -89,21 +92,24 @@ def complete_training_job(
     """
     当训练完成后，由系统内部调用，更新模型状态和路径
     """
-    status = training_manager.get_training_status(job_id)
-    if not status or status['status'] != 'completed':
+    job_status = training_manager.get_training_status(job_id)
+    if not job_status or job_status.get('status') != 'completed':
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Training job not completed or not found")
-    
+
     model = db.query(Model).filter(Model.train_job_id == job_id).first()
     if not model:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Associated model record not found")
 
-    project = db.query(Project).filter(Project.id == model.project_id).first()
+    project = model.dataset.project
     if not project or (project.user_id != current_user.id and not current_user.is_admin):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Not enough permissions to update this model")
 
+    # 更新模型信息
+    results = job_status.get('results', {})
+    model.path = results.get('best_model_path')
     model.status = 'completed'
-    model.path = str(status['results']['best_model_path'])
-    model.results = status['results']
+    model.metrics = json.dumps(results)
+    
     db.commit()
 
     return {"message": "Model status updated", "model_id": model.id}

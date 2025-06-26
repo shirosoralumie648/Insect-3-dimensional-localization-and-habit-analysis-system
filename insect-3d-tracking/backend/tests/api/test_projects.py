@@ -35,8 +35,8 @@ def test_get_projects(client: TestClient, auth_headers: dict, test_user: User, d
     assert "items" in content
     assert "total" in content
     assert isinstance(content["items"], list)
-    assert len(content) > 0
-    assert content[0]["name"] == "List Test Project"
+    assert len(content["items"]) > 0
+    assert content["items"][0]["name"] == "List Test Project"
 
 def test_get_project_by_id(client: TestClient, auth_headers: dict, test_user: User, db: Session) -> None:
     """

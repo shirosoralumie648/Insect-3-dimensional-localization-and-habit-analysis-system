@@ -25,11 +25,12 @@ class ProjectUpdate(BaseModel):
 class ProjectInDB(ProjectBase):
     """数据库中的项目模型"""
     id: int
+    user_id: int
     created_at: datetime
     updated_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class Project(ProjectInDB):

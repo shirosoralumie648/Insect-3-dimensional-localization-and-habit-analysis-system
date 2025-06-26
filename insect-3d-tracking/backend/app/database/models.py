@@ -326,6 +326,7 @@ class Model(Base):
     created_at = Column(DateTime, default=func.now())
     type = Column(String)  # "yolov8n", "yolov8s", etc.
     status = Column(String)  # "training", "completed", "error"
+    train_job_id = Column(String, unique=True)  # 训练任务的唯一ID
     metrics = Column(Text)  # JSON格式的评估指标
     config = Column(Text)  # JSON格式的训练配置
 
